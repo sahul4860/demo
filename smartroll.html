@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SmartRoll – Face Recognition Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & ROOT ─────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#080c14;--surface:#0d1421;--s2:#111827;--border:#1e2d40;
+  --p:#00d4ff;--pd:rgba(0,212,255,.13);
+  --ac:#ff3d71;--acd:rgba(255,61,113,.13);
+  --ok:#00e096;--okd:rgba(0,224,150,.13);
+  --wa:#ffaa00;--wad:rgba(255,170,0,.13);
+  --tx:#e8f0fe;--tm:#6b7fa3;--td:#3d4f6b;
+  --r:12px;--rs:8px;
+  --font:'Exo 2',sans-serif;--mono:'JetBrains Mono',monospace;
+  --sb:240px;   /* sidebar width desktop */
+  --nb:64px;    /* bottom nav height mobile */
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);font-size:15px;}
+button,select,input{font-family:var(--font);}
+img{display:block;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── SCREENS ─────────────────────────────────────────────── */
+.screen{display:none;width:100%;height:100vh;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ── SPLASH ──────────────────────────────────────────────── */
+#splash{flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 30% 40%,rgba(0,212,255,.08),transparent 60%),
+             radial-gradient(ellipse at 70% 70%,rgba(255,61,113,.06),transparent 50%),
+             var(--bg);position:relative;overflow:hidden;}
+.gbg{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
+  background-size:50px 50px;animation:gmove 20s linear infinite;}
+@keyframes gmove{to{transform:translateY(50px)}}
+.sp-logo{position:relative;z-index:2;text-align:center;animation:sfade .9s ease-out;}
+@keyframes sfade{from{opacity:0;transform:translateY(24px) scale(.95)}to{opacity:1;transform:none}}
+.sp-icon{width:clamp(80px,15vw,120px);height:clamp(80px,15vw,120px);
+  background:linear-gradient(135deg,var(--p),#0066ff);border-radius:24px;
+  display:flex;align-items:center;justify-content:center;font-size:clamp(34px,7vw,52px);
+  margin:0 auto 20px;box-shadow:0 0 60px rgba(0,212,255,.4),0 0 120px rgba(0,212,255,.15);
+  animation:pg 2s ease-in-out infinite;}
+@keyframes pg{0%,100%{box-shadow:0 0 60px rgba(0,212,255,.4),0 0 120px rgba(0,212,255,.15)}
+              50%{box-shadow:0 0 80px rgba(0,212,255,.6),0 0 160px rgba(0,212,255,.25)}}
+.sp-title{font-size:clamp(30px,8vw,52px);font-weight:900;letter-spacing:-1px;
+  background:linear-gradient(135deg,#fff,var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
+.sp-sub{font-size:clamp(11px,2.5vw,14px);color:var(--tm);letter-spacing:3px;text-transform:uppercase;margin-bottom:40px;}
+.prog{width:min(280px,70vw);height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:0 auto 20px;}
+.prog-f{height:100%;background:linear-gradient(90deg,var(--p),#0066ff);animation:pload 2.4s ease-out forwards;}
+@keyframes pload{from{width:0}to{width:100%}}
+.sp-st{font-family:var(--mono);font-size:12px;color:var(--p);}
+
+/* ── ROLE SELECT ─────────────────────────────────────────── */
+#roleSelect{flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;
+  background:radial-gradient(ellipse at center,rgba(0,212,255,.05),transparent 70%),var(--bg);
+  padding:clamp(20px,4vw,60px) 16px;}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:clamp(24px,5vw,48px);}
+.brand-ic{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,var(--p),#0066ff);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.brand-nm{font-size:clamp(18px,4vw,24px);font-weight:800;}
+.rh{font-size:clamp(22px,5vw,34px);font-weight:800;text-align:center;margin-bottom:6px;}
+.rsb{color:var(--tm);text-align:center;margin-bottom:clamp(20px,4vw,40px);font-size:14px;}
+.roles-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;width:100%;max-width:760px;margin-bottom:clamp(20px,4vw,40px);}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(18px,3vw,30px) 20px;
+  text-align:center;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;}
+.rc::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;border-radius:18px;}
+.rc.s::before{background:radial-gradient(ellipse at top,rgba(0,212,255,.15),transparent);}
+.rc.f::before{background:radial-gradient(ellipse at top,rgba(0,224,150,.15),transparent);}
+.rc.a::before{background:radial-gradient(ellipse at top,rgba(255,61,113,.15),transparent);}
+.rc:hover::before,.rc:active::before{opacity:1;}
+.rc.s:hover,.rc.s:active{border-color:var(--p);box-shadow:0 0 18px rgba(0,212,255,.3);transform:translateY(-3px);}
+.rc.f:hover,.rc.f:active{border-color:var(--ok);box-shadow:0 0 18px rgba(0,224,150,.3);transform:translateY(-3px);}
+.rc.a:hover,.rc.a:active{border-color:var(--ac);box-shadow:0 0 18px rgba(255,61,113,.3);transform:translateY(-3px);}
+.rav{width:clamp(52px,8vw,68px);height:clamp(52px,8vw,68px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,4vw,26px);font-weight:900;margin:0 auto 12px;}
+.rc.s .rav{background:var(--pd);color:var(--p);}
+.rc.f .rav{background:var(--okd);color:var(--ok);}
+.rc.a .rav{background:var(--acd);color:var(--ac);}
+.rn{font-size:clamp(15px,3vw,18px);font-weight:700;margin-bottom:4px;}
+.rd{font-size:12px;color:var(--tm);margin-bottom:16px;}
+.rbtn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;
+  border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .2s;letter-spacing:.4px;}
+.rc.s .rbtn{background:var(--pd);color:var(--p);}
+.rc.f .rbtn{background:var(--okd);color:var(--ok);}
+.rc.a .rbtn{background:var(--acd);color:var(--ac);}
+.rc.s:hover .rbtn,.rc.s:active .rbtn{background:var(--p);color:#000;}
+.rc.f:hover .rbtn,.rc.f:active .rbtn{background:var(--ok);color:#000;}
+.rc.a:hover .rbtn,.rc.a:active .rbtn{background:var(--ac);color:#fff;}
+.trust{display:flex;flex-wrap:wrap;gap:14px 24px;color:var(--tm);font-size:12px;justify-content:center;}
+
+/* ── FORMS ───────────────────────────────────────────────── */
+.fg{margin-bottom:16px;}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--tm);margin-bottom:7px;letter-spacing:.5px;text-transform:uppercase;}
+.fi{width:100%;padding:13px 14px;background:var(--s2);border:1.5px solid var(--border);border-radius:var(--rs);
+  color:var(--tx);font-size:14px;transition:all .2s;outline:none;appearance:none;}
+.fi:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(0,212,255,.1);}
+.fi.g{border-color:var(--ok);}
+.fi.r{border-color:var(--ac);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.fr{grid-template-columns:1fr;}}
+.sbtn{width:100%;padding:14px;border-radius:var(--rs);border:none;font-size:14px;font-weight:700;
+  cursor:pointer;transition:all .2s;letter-spacing:.4px;margin-top:6px;}
+.sbtn:hover,.sbtn:active{transform:translateY(-1px);opacity:.9;}
+
+/* ── LOGIN ───────────────────────────────────────────────── */
+#loginPage{align-items:center;justify-content:center;background:var(--bg);overflow-y:auto;padding:16px;}
+.lcard{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:clamp(24px,5vw,44px);width:100%;max-width:440px;position:relative;overflow:hidden;margin:auto;}
+.lcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.lcard.s::before{background:linear-gradient(90deg,var(--p),transparent);}
+.lcard.f::before{background:linear-gradient(90deg,var(--ok),transparent);}
+.lcard.a::before{background:linear-gradient(90deg,var(--ac),transparent);}
+.lcard.f .fi:focus{border-color:var(--ok);box-shadow:0 0 0 3px rgba(0,224,150,.1);}
+.lcard.a .fi:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(255,61,113,.1);}
+.lcard.s .sbtn{background:var(--p);color:#000;}
+.lcard.f .sbtn{background:var(--ok);color:#000;}
+.lcard.a .sbtn{background:var(--ac);color:#fff;}
+.lhd{text-align:center;margin-bottom:28px;margin-top:12px;}
+.lic{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;}
+.lcard.s .lic{background:var(--pd);}
+.lcard.f .lic{background:var(--okd);}
+.lcard.a .lic{background:var(--acd);}
+.lt{font-size:clamp(18px,4vw,22px);font-weight:800;margin-bottom:4px;}
+.ls{color:var(--tm);font-size:13px;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);
+  border-radius:var(--rs);padding:7px 12px;cursor:pointer;color:var(--tm);font-size:12px;
+  transition:all .2s;margin-bottom:8px;}
+.back-btn:hover,.back-btn:active{border-color:var(--p);color:var(--p);}
+.hint{font-family:var(--mono);font-size:11px;color:var(--tm);text-align:center;margin-top:10px;}
+.hint span{color:var(--p);}
+
+/* ── SIGNUP ──────────────────────────────────────────────── */
+#signupPage{flex-direction:column;overflow-y:auto;background:var(--bg);padding:16px;}
+.sigc{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--p);
+  border-radius:20px;padding:clamp(20px,4vw,36px);width:100%;max-width:580px;margin:auto;}
+.cap-box{background:var(--s2);border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;}
+.cap-box:hover,.cap-box:active{border-color:var(--p);}
+.cap-box.done{border-color:var(--ok);border-style:solid;}
+
+/* ── DASHBOARD SHELL ─────────────────────────────────────── */
+#dashboard{flex-direction:row;overflow:hidden;}
+
+/* sidebar */
+.sidebar{width:var(--sb);height:100vh;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+  transition:transform .3s ease;}
+.sb-brand{padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--p),#0066ff);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.sb-ttl{font-size:16px;font-weight:800;white-space:nowrap;}
+.sb-role{font-size:10px;color:var(--tm);letter-spacing:1px;text-transform:uppercase;}
+.nav-s{padding:16px 10px 0;flex:1;overflow-y:auto;}
+.nav-lbl{font-size:9px;font-weight:700;color:var(--td);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin:8px 0 4px;}
+.ni{display:flex;align-items:center;gap:9px;padding:10px 10px;border-radius:var(--rs);cursor:pointer;
+  transition:all .15s;margin-bottom:1px;font-size:13px;font-weight:500;color:var(--tm);white-space:nowrap;}
+.ni:hover,.ni:active{background:var(--s2);color:var(--tx);}
+.ni.on{background:var(--pd);color:var(--p);font-weight:600;}
+.ni .nbadge{margin-left:auto;background:var(--ac);color:#fff;border-radius:99px;font-size:10px;padding:2px 6px;font-weight:700;}
+.sb-foot{padding:14px 10px;border-top:1px solid var(--border);}
+.ui{display:flex;align-items:center;gap:9px;padding:8px;border-radius:var(--rs);cursor:pointer;transition:.2s;}
+.ui:hover,.ui:active{background:var(--s2);}
+.uav{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--p),#0066ff);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;flex-shrink:0;}
+.un{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.uid{font-size:10px;color:var(--tm);font-family:var(--mono);}
+.logout{margin-left:auto;width:26px;height:26px;border-radius:6px;background:var(--acd);color:var(--ac);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:13px;flex-shrink:0;}
+.logout:hover,.logout:active{background:var(--ac);color:#fff;}
+
+/* overlay for mobile sidebar */
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:29;backdrop-filter:blur(2px);}
+.sb-overlay.show{display:block;}
+
+/* main content */
+.mc{flex:1;overflow-y:auto;height:100vh;padding:clamp(16px,3vw,28px);padding-bottom:calc(var(--nb) + 12px);}
+
+/* TOP BAR (mobile / tablet) */
+.topbar{display:none;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5;flex-shrink:0;}
+.hamburger{width:36px;height:36px;background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;}
+.hamburger span{width:16px;height:2px;background:var(--tx);border-radius:2px;transition:.2s;}
+.tb-title{font-size:15px;font-weight:700;flex:1;}
+.tb-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--p),#0066ff);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;}
+
+/* BOTTOM NAV (mobile) */
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nb);background:var(--surface);
+  border-top:1px solid var(--border);z-index:20;justify-content:space-around;align-items:center;padding:0 4px;}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 8px;
+  border-radius:var(--rs);cursor:pointer;flex:1;max-width:72px;transition:.15s;}
+.bn-item.on{color:var(--p);}
+.bn-item:not(.on){color:var(--tm);}
+.bn-ic{font-size:18px;position:relative;}
+.bn-lbl{font-size:9px;font-weight:600;letter-spacing:.3px;}
+.bn-badge{position:absolute;top:-4px;right:-6px;background:var(--ac);color:#fff;border-radius:99px;font-size:8px;padding:1px 4px;font-weight:700;}
+
+/* ── RESPONSIVE BREAKPOINTS ──────────────────────────────── */
+/* Desktop ≥ 1024px: sidebar always visible */
+@media(min-width:1024px){
+  .sidebar{transform:none!important;position:relative;z-index:1;}
+  .mc{padding-bottom:clamp(16px,3vw,28px);}
+  .topbar{display:none!important;}
+  .bnav{display:none!important;}
+}
+/* Tablet 600–1023px: sidebar hidden, topbar + hamburger, no bottom nav */
+@media(min-width:600px) and (max-width:1023px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:30;transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .topbar{display:flex;}
+  .bnav{display:none;}
+  .mc{height:calc(100vh - 57px);overflow-y:auto;padding-bottom:16px;}
+  #dashboard{flex-direction:column;}
+}
+/* Mobile < 600px: sidebar hidden, topbar + bottom nav */
+@media(max-width:599px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:30;transform:translateX(-100%);width:220px;}
+  .sidebar.open{transform:translateX(0);}
+  .topbar{display:flex;}
+  .bnav{display:flex;}
+  .mc{height:calc(100vh - 57px - var(--nb));overflow-y:auto;padding:12px 12px calc(var(--nb) + 8px);}
+  #dashboard{flex-direction:column;}
+  .stats-g{grid-template-columns:1fr 1fr!important;}
+  .face-s{grid-template-columns:1fr!important;}
+  .two-col{grid-template-columns:1fr!important;}
+  .hide-mob{display:none!important;}
+}
+
+/* ── CONTENT COMPONENTS ──────────────────────────────────── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap;}
+.pt{font-size:clamp(20px,4vw,26px);font-weight:800;}
+.psb{font-size:13px;color:var(--tm);margin-top:2px;}
+.ha{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+
+/* buttons */
+.btn{padding:9px 18px;border-radius:var(--rs);border:none;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .2s;display:inline-flex;align-items:center;gap:7px;}
+.bp{background:var(--p);color:#000;}.bp:hover,.bp:active{opacity:.85;}
+.bg{background:var(--s2);color:var(--tm);border:1px solid var(--border);}.bg:hover,.bg:active{border-color:var(--p);color:var(--p);}
+.bs{background:var(--ok);color:#000;}.bs:hover,.bs:active{opacity:.85;}
+.bd{background:var(--acd);color:var(--ac);border:1px solid rgba(255,61,113,.2);}
+
+/* stat cards */
+.stats-g{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 16px;
+  display:flex;align-items:center;gap:12px;transition:.2s;}
+.sc:hover{transform:translateY(-2px);}
+.si{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.si.b{background:var(--pd);}.si.g{background:var(--okd);}.si.r{background:var(--acd);}.si.y{background:var(--wad);}
+.sv{font-size:clamp(22px,4vw,30px);font-weight:800;line-height:1;}
+.sl{font-size:12px;color:var(--tm);margin-top:3px;}
+.sch{font-size:11px;color:var(--ok);margin-top:2px;font-family:var(--mono);}
+
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+.phead{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.ptitle{font-size:14px;font-weight:700;}
+.pbody{padding:20px;}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);text-align:left;}
+.tbl td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+
+/* badges */
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;}
+.bk{background:var(--okd);color:var(--ok);}
+.br{background:var(--acd);color:var(--ac);}
+.bw{background:var(--wad);color:var(--wa);}
+.bi{background:var(--pd);color:var(--p);}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* att bars */
+.ab{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px;}
+.af{height:100%;border-radius:3px;transition:width 1s;}
+.af.ok{background:var(--ok);}.af.wa{background:var(--wa);}.af.ng{background:var(--ac);}
+.apc{font-size:16px;font-weight:800;}
+.apc.ok{color:var(--ok);}.apc.wa{color:var(--wa);}.apc.ng{color:var(--ac);}
+
+/* notif */
+.ni-item{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);}
+.ni-ic{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ni-t{font-size:12px;color:var(--tm);font-family:var(--mono);margin-top:3px;}
+
+/* face session */
+.face-s{display:grid;grid-template-columns:1fr 340px;gap:20px;}
+.cam{background:#000;border-radius:14px;border:2px solid var(--border);position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;min-height:240px;}
+.cam.live{border-color:var(--ac);}
+.cam-ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:14px;pointer-events:none;}
+.live-b{display:inline-flex;align-items:center;gap:5px;background:var(--ac);color:#fff;padding:4px 10px;
+  border-radius:99px;font-size:11px;font-weight:700;animation:lp 1.4s ease-in-out infinite;align-self:flex-start;}
+@keyframes lp{0%,100%{opacity:1}50%{opacity:.65}}
+.cam-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tm);padding:32px;}
+.scan-r{width:90px;height:90px;border-radius:50%;border:2px solid var(--border);position:relative;display:flex;align-items:center;justify-content:center;}
+.scan-r::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid transparent;border-top-color:var(--p);animation:spin 1.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sp-list{background:var(--s2);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:1;}
+.rh{padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.ri{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);transition:.15s;}
+.ri:last-child{border-bottom:none;}
+.ri-av{width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--p);flex-shrink:0;}
+.ri-nm{font-size:12px;font-weight:600;}
+.ri-id{font-size:10px;color:var(--tm);font-family:var(--mono);}
+
+/* circ */
+.circ{position:relative;width:90px;height:90px;flex-shrink:0;}
+.circ svg{transform:rotate(-90deg);}
+.circ-tx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.c-pct{font-size:19px;font-weight:800;}
+.c-lb{font-size:9px;color:var(--tm);}
+
+/* modal */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;}
+.moverlay.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(24px,5vw,36px);max-width:400px;width:100%;text-align:center;animation:mi .28s ease-out;}
+@keyframes mi{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.mic{font-size:46px;margin-bottom:14px;}
+.mt{font-size:20px;font-weight:800;margin-bottom:7px;}
+.mtx{color:var(--tm);font-size:13px;margin-bottom:22px;}
+.mb{display:flex;gap:10px;justify-content:center;}
+
+/* two col layout */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+/* scroll helper */
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+@keyframes fi{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash" class="screen active">
+  <div class="gbg"></div>
+  <div class="sp-logo">
+    <div class="sp-icon">🎓</div>
+    <div class="sp-title">SmartRoll</div>
+    <div class="sp-sub">Face Recognition Attendance</div>
+    <div class="prog"><div class="prog-f"></div></div>
+    <div class="sp-st" id="spSt">Initialising face recognition engine...</div>
+  </div>
+</div>
+
+<!-- ROLE SELECT -->
+<div id="roleSelect" class="screen">
+  <div class="brand"><div class="brand-ic">🎓</div><div><div class="brand-nm">SmartRoll</div><div style="font-size:10px;color:var(--tm)">Face Recognition System</div></div></div>
+  <div class="rh">Select Your Role</div>
+  <div class="rsb">Choose your login role to continue</div>
+  <div class="roles-g">
+    <div class="rc s" onclick="goLogin('student')">
+      <div class="rav">S</div><div class="rn">Student</div><div class="rd">Access your attendance records</div>
+      <button class="rbtn">👤 Login as Student →</button>
+    </div>
+    <div class="rc f" onclick="goLogin('faculty')">
+      <div class="rav">F</div><div class="rn">Faculty</div><div class="rd">Manage class sessions</div>
+      <button class="rbtn">🎓 Login as Faculty →</button>
+    </div>
+    <div class="rc a" onclick="goLogin('admin')">
+      <div class="rav">A</div><div class="rn">Admin</div><div class="rd">Full system control</div>
+      <button class="rbtn">⚙️ Login as Admin →</button>
+    </div>
+  </div>
+  <div class="trust">
+    <span>🔒 Secure &amp; Accurate</span>
+    <span>🛡️ Privacy First</span>
+    <span>⚡ Fast &amp; Seamless</span>
+  </div>
+  <div style="margin-top:16px;font-size:13px;color:var(--tm);">
+    New student? <span style="color:var(--p);cursor:pointer;" onclick="showScreen('signupPage')">Sign Up →</span>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div id="signupPage" class="screen" style="overflow-y:auto;display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;">
+  <div class="sigc">
+    <button class="back-btn" onclick="showScreen('roleSelect')">← Back</button>
+    <div style="text-align:center;margin:12px 0 22px;">
+      <div style="font-size:20px;font-weight:800;">Create Your Account</div>
+      <div style="color:var(--tm);font-size:12px;margin-top:4px;">Fill in your details to get started</div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Full Name</label><input class="fi" placeholder="e.g. Rahul Kumar"/></div>
+      <div class="fg"><label class="fl">Roll Number</label><input class="fi" placeholder="e.g. 21CS001"/></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Email Address</label><input class="fi" type="email" placeholder="rahul@college.edu"/></div>
+      <div class="fg"><label class="fl">Phone Number</label><input class="fi" placeholder="9876543210"/></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Department</label>
+        <select class="fi"><option>Computer Science</option><option>Electronics</option><option>Mechanical</option><option>Civil</option></select>
+      </div>
+      <div class="fg"><label class="fl">Year / Semester</label>
+        <select class="fi"><option>1st Year / Sem 1</option><option>2nd Year / Sem 3</option><option>3rd Year / Sem 5</option><option>4th Year / Sem 7</option></select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Password</label><input class="fi" type="password" placeholder="Strong password"/></div>
+      <div class="fg"><label class="fl">Confirm Password</label><input class="fi" type="password" placeholder="Re-enter"/></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Face Capture</label>
+      <div class="cap-box" id="capBox" onclick="doCapture()">
+        <div id="capIc" style="font-size:32px;margin-bottom:6px;">👤</div>
+        <div id="capLb" style="font-size:12px;color:var(--tm);">Click to capture your face</div>
+      </div>
+    </div>
+    <button class="sbtn" style="background:var(--p);color:#000;" onclick="showModal()">👤 REGISTER &amp; CAPTURE FACE →</button>
+    <div class="hint" style="margin-top:8px;">🔒 Your data is secure and encrypted</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="screen" style="overflow-y:auto;flex-direction:column;align-items:center;justify-content:center;padding:16px;">
+  <div id="lcard" class="lcard s">
+    <button class="back-btn" onclick="showScreen('roleSelect')">← Back</button>
+    <div class="lhd">
+      <div class="lic" id="licIc">👤</div>
+      <div class="lt" id="lTitle">Student Login</div>
+      <div class="ls" id="lSub">Welcome back! Login to your student account.</div>
+    </div>
+    <div class="fg">
+      <label class="fl" id="lIdLbl">Roll Number / Email</label>
+      <input class="fi" id="lId" placeholder="e.g. 21CS001" value="21CS001"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Password</label>
+      <input class="fi" type="password" id="lPass" placeholder="••••••••" value="password"/>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--tm);cursor:pointer;">
+        <input type="checkbox" style="accent-color:var(--p);"> Remember me
+      </label>
+      <span style="font-size:12px;color:var(--p);cursor:pointer;">Forgot Password?</span>
+    </div>
+    <button class="sbtn" id="loginBtn" onclick="doLogin()">LOGIN →</button>
+    <div class="hint">Demo: <span>Any credentials work</span></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="screen" style="display:none;flex-direction:column;">
+  <!-- Sidebar overlay (mobile/tablet) -->
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+  <!-- TOP BAR (mobile/tablet) -->
+  <div class="topbar">
+    <div class="hamburger" onclick="toggleSidebar()">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="tb-title" id="tbTitle">Dashboard</div>
+    <div class="tb-av" id="tbAv">R</div>
+    <button class="logout" onclick="doLogout()" title="Logout" style="margin-left:4px;">⏏</button>
+  </div>
+
+  <div style="display:flex;flex:1;overflow:hidden;position:relative;">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-brand">
+        <div class="sb-logo">🎓</div>
+        <div>
+          <div class="sb-ttl">SmartRoll</div>
+          <div class="sb-role" id="sRole">Student Portal</div>
+        </div>
+      </div>
+      <div class="nav-s" id="sNav"></div>
+      <div class="sb-foot">
+        <div class="ui">
+          <div class="uav" id="sAv">R</div>
+          <div style="overflow:hidden;">
+            <div class="un" id="sNm">Rahul Kumar</div>
+            <div class="uid" id="sId">21CS001</div>
+          </div>
+          <button class="logout" onclick="doLogout()" title="Logout">⏏</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="mc" id="mc"></main>
+  </div>
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav class="bnav" id="bnav"></nav>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="moverlay" id="modal">
+  <div class="modal">
+    <div class="mic">✅</div>
+    <div class="mt">Registration Successful!</div>
+    <div class="mtx">Your face data has been captured and profile created. You can now log in.</div>
+    <div class="mb">
+      <button class="btn bp" onclick="closeModal();goLogin('student')">Login Now</button>
+      <button class="btn bg" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let CUR_ROLE='student', CUR_VIEW='dashboard';
+let SESSION=false, SESS_TMR=null, SESS_SEC=0, RECOG=[];
+
+/* ═══════════════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════════════ */
+const STUDENTS=[
+  {id:'21CS001',name:'Rahul Kumar',att:87.5,p:21,ab:3,tot:24,st:'safe'},
+  {id:'21CS002',name:'Amit Sharma',att:75.0,p:18,ab:6,tot:24,st:'warn'},
+  {id:'21CS003',name:'Priya Singh',att:95.8,p:23,ab:1,tot:24,st:'safe'},
+  {id:'21CS004',name:'Rohit Verma',att:58.3,p:14,ab:10,tot:24,st:'dang'},
+  {id:'21CS005',name:'Neha Gupta',att:91.7,p:22,ab:2,tot:24,st:'safe'},
+  {id:'21CS006',name:'Suman Das',att:70.8,p:17,ab:7,tot:24,st:'warn'},
+  {id:'21CS007',name:'Aman Roy',att:83.3,p:20,ab:4,tot:24,st:'safe'},
+  {id:'21CS008',name:'Kavya Nair',att:100,p:24,ab:0,tot:24,st:'safe'},
+];
+const RECENTS=[
+  {s:'Data Structures',d:'23 Apr 2026',t:'10:00 AM',st:'present'},
+  {s:'DBMS',d:'22 Apr 2026',t:'02:00 PM',st:'present'},
+  {s:'OS',d:'21 Apr 2026',t:'11:00 AM',st:'absent'},
+  {s:'Computer Networks',d:'20 Apr 2026',t:'09:00 AM',st:'present'},
+  {s:'Software Engg.',d:'19 Apr 2026',t:'02:00 PM',st:'present'},
+];
+const POOL=['Rahul Kumar','Priya Singh','Aman Roy','Neha Gupta','Vikram Das','Amit Sharma'];
+const CONF=['98.2%','96.7%','94.1%','91.3%','89.8%','97.0%'];
+
+const NAV_CFG={
+  student:[
+    {lbl:'MAIN',items:[
+      {id:'dashboard',ic:'📊',lbl:'Dashboard'},
+      {id:'attendance',ic:'📅',lbl:'My Attendance'},
+      {id:'reports',ic:'📈',lbl:'Reports'},
+      {id:'notifications',ic:'🔔',lbl:'Notifications',badge:3},
+    ]},
+    {lbl:'ACCOUNT',items:[{id:'profile',ic:'👤',lbl:'Profile'}]},
+  ],
+  faculty:[
+    {lbl:'MAIN',items:[
+      {id:'dashboard',ic:'📊',lbl:'Dashboard'},
+      {id:'session',ic:'🎥',lbl:'Start Session'},
+      {id:'attendance',ic:'📅',lbl:'Attendance'},
+      {id:'reports',ic:'📈',lbl:'Reports'},
+    ]},
+    {lbl:'MANAGE',items:[
+      {id:'students',ic:'👥',lbl:'Students'},
+      {id:'notifications',ic:'🔔',lbl:'Notifications'},
+    ]},
+  ],
+  admin:[
+    {lbl:'MAIN',items:[
+      {id:'dashboard',ic:'📊',lbl:'Dashboard'},
+      {id:'students',ic:'👥',lbl:'Students'},
+      {id:'faculty',ic:'🎓',lbl:'Faculty'},
+    ]},
+    {lbl:'MGMT',items:[
+      {id:'attendance',ic:'📅',lbl:'Attendance'},
+      {id:'reports',ic:'📈',lbl:'Reports'},
+      {id:'session',ic:'🎥',lbl:'Live Session'},
+      {id:'notifications',ic:'🔔',lbl:'Notifications'},
+    ]},
+  ],
+};
+const USER_INFO={
+  student:{nm:'Rahul Kumar',id:'21CS001',role:'Student Portal',av:'R'},
+  faculty:{nm:'Dr. S. Mishra',id:'FAC001',role:'Faculty Portal',av:'S'},
+  admin:{nm:'Admin User',id:'ADM001',role:'Admin Portal',av:'A'},
+};
+
+/* ═══════════════════════════════════════════════════════════
+   SPLASH
+═══════════════════════════════════════════════════════════ */
+const MSGS=['Initialising face recognition engine...','Loading FaceNet embeddings...','Connecting to MySQL database...','Starting SmartRoll...'];
+let si=0;
+const stEl=document.getElementById('spSt');
+const siv=setInterval(()=>{si++;if(si<MSGS.length)stEl.textContent=MSGS[si];else{clearInterval(siv);setTimeout(()=>showScreen('roleSelect'),350);}},620);
+
+/* ═══════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='';});
+  const el=document.getElementById(id);
+  el.style.display='flex';
+  el.classList.add('active');
+}
+function goLogin(role){
+  CUR_ROLE=role;
+  const c=document.getElementById('lcard');
+  c.className='lcard '+({student:'s',faculty:'f',admin:'a'}[role]);
+  const M={
+    student:{ic:'👤',t:'Student Login',s:'Welcome back! Login to your student account.',lbl:'Roll Number / Email',ph:'21CS001'},
+    faculty:{ic:'🎓',t:'Faculty Login',s:'Welcome back! Login to your faculty account.',lbl:'Employee ID / Email',ph:'FAC001'},
+    admin:{ic:'⚙️',t:'Admin Login',s:'Restricted area. Administrator access only.',lbl:'Admin ID / Email',ph:'ADM001'},
+  }[role];
+  document.getElementById('licIc').textContent=M.ic;
+  document.getElementById('lTitle').textContent=M.t;
+  document.getElementById('lSub').textContent=M.s;
+  document.getElementById('lIdLbl').textContent=M.lbl;
+  document.getElementById('lId').value=M.ph;
+  showScreen('loginPage');
+}
+function doLogin(){
+  const btn=document.getElementById('loginBtn');
+  btn.textContent='Authenticating...';btn.disabled=true;
+  setTimeout(()=>{btn.textContent='LOGIN →';btn.disabled=false;initDash();showScreen('dashboard');},1100);
+}
+function doLogout(){if(SESSION)stopSession();showScreen('roleSelect');}
+function showModal(){document.getElementById('modal').classList.add('show');}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+function doCapture(){
+  document.getElementById('capIc').textContent='⏳';
+  document.getElementById('capLb').textContent='Capturing...';
+  setTimeout(()=>{document.getElementById('capBox').classList.add('done');document.getElementById('capIc').textContent='✅';document.getElementById('capLb').textContent='Face captured successfully!';},1400);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR / TOPBAR
+═══════════════════════════════════════════════════════════ */
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sbOverlay').classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD INIT
+═══════════════════════════════════════════════════════════ */
+function initDash(){
+  const inf=USER_INFO[CUR_ROLE];
+  document.getElementById('sRole').textContent=inf.role;
+  document.getElementById('sAv').textContent=inf.av;
+  document.getElementById('sNm').textContent=inf.nm;
+  document.getElementById('sId').textContent=inf.id;
+  document.getElementById('tbAv').textContent=inf.av;
+
+  // sidebar nav
+  const nav=document.getElementById('sNav'); nav.innerHTML='';
+  NAV_CFG[CUR_ROLE].forEach(sec=>{
+    nav.innerHTML+=`<div class="nav-lbl">${sec.lbl}</div>`;
+    sec.items.forEach(it=>{
+      nav.innerHTML+=`<div class="ni" id="sni-${it.id}" onclick="go('${it.id}')">
+        <span>${it.ic}</span><span>${it.lbl}</span>
+        ${it.badge?`<span class="nbadge">${it.badge}</span>`:''}
+      </div>`;
+    });
+  });
+
+  // bottom nav — first 5 items across all sections
+  const allItems=NAV_CFG[CUR_ROLE].flatMap(s=>s.items).slice(0,5);
+  const bn=document.getElementById('bnav'); bn.innerHTML='';
+  allItems.forEach(it=>{
+    bn.innerHTML+=`<div class="bn-item" id="bni-${it.id}" onclick="go('${it.id}')">
+      <div class="bn-ic">${it.ic}${it.badge?`<span class="bn-badge">${it.badge}</span>`:''}</div>
+      <div class="bn-lbl">${it.lbl}</div>
+    </div>`;
+  });
+
+  go('dashboard');
+}
+
+function go(view){
+  CUR_VIEW=view;
+  // sidebar active
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  const sni=document.getElementById('sni-'+view); if(sni)sni.classList.add('on');
+  // bottom nav active
+  document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('on'));
+  const bni=document.getElementById('bni-'+view); if(bni)bni.classList.add('on');
+  // topbar title
+  const allItems=NAV_CFG[CUR_ROLE].flatMap(s=>s.items);
+  const cur=allItems.find(i=>i.id===view);
+  document.getElementById('tbTitle').textContent=cur?cur.lbl:'Dashboard';
+
+  closeSidebar();
+  const mc=document.getElementById('mc');
+  ({student:renderStudent,faculty:renderFaculty,admin:renderAdmin}[CUR_ROLE])(view,mc);
+  mc.scrollTop=0;
+  bars();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STUDENT VIEWS
+═══════════════════════════════════════════════════════════ */
+function renderStudent(v,m){
+  if(v==='dashboard')m.innerHTML=sDash();
+  else if(v==='attendance')m.innerHTML=sAtt();
+  else if(v==='reports')m.innerHTML=sRep();
+  else if(v==='notifications')m.innerHTML=notifView([
+    {ic:'⚠️',c:'wad',msg:'OS attendance dropped to 72%. Need 3 more classes.',t:'2 hours ago'},
+    {ic:'✅',c:'okd',msg:'Attendance marked for Data Structures — 23 Apr.',t:'Yesterday'},
+    {ic:'📊',c:'pd',msg:'April 2026 report is available.',t:'2 days ago'},
+  ]);
+  else if(v==='profile')m.innerHTML=profView();
+}
+function sDash(){return`
+<div class="ph"><div><div class="pt">Dashboard</div><div class="psb">Welcome, Rahul Kumar | Roll: 21CS001</div></div>
+<span style="font-size:12px;color:var(--tm);">📅 27 Apr 2026</span></div>
+<div class="stats-g">
+  <div class="sc"><div class="si g">📈</div><div><div class="sv" style="color:var(--ok);">87.5%</div><div class="sl">Overall Att.</div><div class="sch">↑ +2.1%</div></div></div>
+  <div class="sc"><div class="si g">✅</div><div><div class="sv">63</div><div class="sl">Present</div></div></div>
+  <div class="sc"><div class="si r">❌</div><div><div class="sv" style="color:var(--ac);">9</div><div class="sl">Absent</div></div></div>
+  <div class="sc"><div class="si y">📋</div><div><div class="sv">72</div><div class="sl">Total Sessions</div></div></div>
+</div>
+<div class="panel">
+  <div class="phead"><div class="ptitle">📅 Recent Attendance</div><button class="btn bg" onclick="go('attendance')" style="font-size:12px;padding:6px 12px;">View All</button></div>
+  <div class="scroll-x">
+  <table class="tbl"><thead><tr><th>Subject</th><th>Date</th><th>Session</th><th>Status</th></tr></thead><tbody>
+    ${RECENTS.map(a=>`<tr><td><b>${a.s}</b></td><td style="white-space:nowrap">${a.d}</td><td style="white-space:nowrap">🕐 ${a.t}</td>
+    <td><span class="bdg ${a.st==='present'?'bk':'br'}"><span class="bdot"></span>${a.st==='present'?'Present':'Absent'}</span></td></tr>`).join('')}
+  </tbody></table></div>
+</div>`;}
+
+function sAtt(){
+  const subs=[{n:'Data Structures',p:20,t:24,a:83.3,c:'ok'},{n:'DBMS',p:22,t:24,a:91.7,c:'ok'},{n:'Operating Systems',p:16,t:24,a:66.7,c:'ng'},{n:'Computer Networks',p:23,t:24,a:95.8,c:'ok'},{n:'Software Engg.',p:19,t:24,a:79.2,c:'wa'}];
+  return`<div class="ph"><div><div class="pt">My Attendance</div><div class="psb">Subject-wise overview</div></div></div>
+<div class="panel"><div class="phead"><div class="ptitle">📊 Subject-wise Attendance</div></div><div class="pbody">
+  ${subs.map(s=>`<div style="margin-bottom:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;gap:6px;">
+      <b style="font-size:13px;">${s.n}</b>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--tm);">${s.p}/${s.t}</span>
+        <span class="apc ${s.c}">${s.a}%</span>
+        <span class="bdg ${s.c==='ok'?'bk':s.c==='wa'?'bw':'br'}"><span class="bdot"></span>${s.c==='ok'?'Safe':s.c==='wa'?'Warning':'Low'}</span>
+      </div>
+    </div>
+    <div class="ab"><div class="af ${s.c}" style="width:${s.a}%"></div></div>
+  </div>`).join('')}
+</div></div>
+<div class="panel"><div class="phead"><div class="ptitle">📅 Attendance Log</div></div>
+<div class="scroll-x">
+<table class="tbl"><thead><tr><th>Subject</th><th>Date</th><th>Time</th><th>Status</th></tr></thead><tbody>
+  ${RECENTS.map(a=>`<tr><td><b>${a.s}</b></td><td style="white-space:nowrap">${a.d}</td><td style="white-space:nowrap">${a.t}</td>
+  <td><span class="bdg ${a.st==='present'?'bk':'br'}"><span class="bdot"></span>${a.st==='present'?'Present':'Absent'}</span></td></tr>`).join('')}
+</tbody></table></div></div>`;}
+
+function sRep(){return`
+<div class="ph"><div class="pt">Reports</div><div class="ha"><button class="btn bg">📄 CSV</button><button class="btn bp">📑 PDF</button></div></div>
+<div class="panel"><div class="phead"><div class="ptitle">📈 Summary — Jan–Apr 2026</div></div>
+<div class="pbody" style="display:flex;align-items:center;justify-content:center;gap:36px;flex-wrap:wrap;padding:30px 20px;">
+  <div class="circ">
+    <svg viewBox="0 0 90 90" width="90" height="90">
+      <circle class="circ-track" cx="45" cy="45" r="38" style="fill:none;stroke:var(--border);stroke-width:7;"/>
+      <circle cx="45" cy="45" r="38" style="fill:none;stroke:var(--ok);stroke-width:7;stroke-linecap:round;stroke-dasharray:239;stroke-dashoffset:${239-239*0.875};"/>
+    </svg>
+    <div class="circ-tx"><div class="c-pct" style="color:var(--ok);">87.5%</div><div class="c-lb">Overall</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:3px;background:var(--ok);"></div><span style="font-size:13px;">Present: <b>63</b></span></div>
+    <div style="display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:3px;background:var(--ac);"></div><span style="font-size:13px;">Absent: <b>9</b></span></div>
+    <div style="display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:3px;background:var(--border);"></div><span style="font-size:13px;">Total: <b>72</b></span></div>
+  </div>
+</div></div>`;}
+
+function profView(){return`
+<div class="ph"><div class="pt">My Profile</div></div>
+<div class="panel"><div class="pbody" style="display:flex;gap:24px;flex-wrap:wrap;">
+  <div style="text-align:center;min-width:100px;">
+    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--p),#0066ff);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;color:#000;margin:0 auto 10px;">R</div>
+    <div style="font-weight:700;font-size:16px;">Rahul Kumar</div>
+    <div style="color:var(--tm);font-size:11px;font-family:var(--mono);">21CS001</div>
+    <span class="bdg bk" style="margin-top:6px;"><span class="bdot"></span>Active</span>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;">
+    ${[['Email','rahul@college.edu'],['Phone','9876543210'],['Dept','Computer Science'],['Year/Sem','3rd / Sem 5'],['Course','B.Tech CSE'],['Enrolled','July 2022']].map(([k,v])=>`<div><div style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">${k}</div><div style="font-size:13px;font-weight:600;">${v}</div></div>`).join('')}
+  </div>
+</div></div>`;}
+
+/* ═══════════════════════════════════════════════════════════
+   FACULTY VIEWS
+═══════════════════════════════════════════════════════════ */
+function renderFaculty(v,m){
+  if(v==='dashboard')m.innerHTML=fDash();
+  else if(v==='session'){m.innerHTML=sessView();RECOG=[];}
+  else if(v==='attendance')m.innerHTML=attTbl();
+  else if(v==='reports')m.innerHTML=`<div class="ph"><div class="pt">Reports</div><div class="ha"><button class="btn bg">📄 CSV</button><button class="btn bp">📑 PDF</button></div></div>`+attTblInner();
+  else if(v==='students')m.innerHTML=studTbl();
+  else if(v==='notifications')m.innerHTML=notifView([
+    {ic:'✅',c:'okd',msg:'Data Structures session — 42/60 present.',t:'3 hours ago'},
+    {ic:'⚠️',c:'wad',msg:'6 students below 75% in DBMS class.',t:'Yesterday'},
+  ]);
+}
+function fDash(){return`
+<div class="ph"><div><div class="pt">Faculty Dashboard</div><div class="psb">Dr. S. Mishra | FAC001 | Computer Science</div></div>
+<button class="btn bs" onclick="go('session')">🎥 Start Session</button></div>
+<div class="stats-g">
+  <div class="sc"><div class="si b">📚</div><div><div class="sv">5</div><div class="sl">Subjects</div></div></div>
+  <div class="sc"><div class="si g">👥</div><div><div class="sv">180</div><div class="sl">Students</div></div></div>
+  <div class="sc"><div class="si y">📅</div><div><div class="sv">48</div><div class="sl">Sessions</div></div></div>
+  <div class="sc"><div class="si r">⚠️</div><div><div class="sv" style="color:var(--wa);">12</div><div class="sl">Low Att.</div></div></div>
+</div>
+<div class="panel"><div class="phead"><div class="ptitle">📋 Recent Sessions</div></div>
+<div class="scroll-x">
+<table class="tbl"><thead><tr><th>Subject</th><th>Batch</th><th>Date</th><th>Present/Total</th><th>Status</th></tr></thead><tbody>
+  ${[{s:'Data Structures',b:'3A CSE',d:'23 Apr',p:42,tot:60},{s:'DBMS',b:'3A CSE',d:'22 Apr',p:55,tot:60},{s:'Algorithm Design',b:'4B CSE',d:'21 Apr',p:38,tot:60}]
+  .map(r=>`<tr><td><b>${r.s}</b></td><td>${r.b}</td><td>${r.d}</td><td>${r.p}/${r.tot} <span style="color:var(--tm);font-size:11px;">(${Math.round(r.p/r.tot*100)}%)</span></td><td><span class="bdg bk"><span class="bdot"></span>Done</span></td></tr>`).join('')}
+</tbody></table></div></div>`;}
+
+function sessView(){return`
+<div class="ph"><div><div class="pt">Live Session</div><div class="psb" id="ssInfo">Configure and start attendance session</div></div>
+<div class="ha">
+  <select class="fi" id="ssSub" style="width:auto;padding:9px 12px;font-size:13px;"><option>Data Structures</option><option>DBMS</option><option>Algorithm Design</option></select>
+  <select class="fi" id="ssBat" style="width:auto;padding:9px 12px;font-size:13px;"><option>Batch 3A</option><option>Batch 3B</option><option>Batch 4A</option></select>
+  <button class="btn bs" id="startBtn" onclick="startSession()">▶ Start</button>
+</div></div>
+<div class="face-s">
+  <div>
+    <div class="cam" id="camF" style="min-height:clamp(200px,30vw,320px);">
+      <div id="camPH" class="cam-ph">
+        <div class="scan-r"><span style="font-size:30px;">📷</span></div>
+        <div style="font-size:13px;font-weight:600;">Camera Preview</div>
+        <div style="font-size:12px;color:var(--tm);text-align:center;">Start session to begin face recognition</div>
+      </div>
+      <div id="camAC" style="display:none;width:100%;height:100%;min-height:200px;background:linear-gradient(135deg,#0a0f18,#0d1a2e);position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;display:flex;gap:12px;align-items:center;justify-content:center;padding:16px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="width:clamp(100px,15vw,150px);height:clamp(130px,18vw,180px);background:linear-gradient(180deg,#1a2a3a,#0d1421);border-radius:10px;border:2px solid var(--ok);box-shadow:0 0 18px rgba(0,224,150,.3);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;">
+              <span style="font-size:clamp(48px,8vw,72px);transform:translateY(8px);">👨‍🎓</span></div>
+            <div style="margin-top:6px;color:var(--ok);font-weight:700;font-size:12px;" id="f1n">Rahul Kumar</div>
+            <div style="color:var(--ok);font-size:11px;font-family:var(--mono);" id="f1c">98.2%</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:clamp(85px,12vw,130px);height:clamp(110px,16vw,160px);background:linear-gradient(180deg,#1a2a3a,#0d1421);border-radius:10px;border:2px solid var(--ok);box-shadow:0 0 18px rgba(0,224,150,.3);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;">
+              <span style="font-size:clamp(40px,7vw,62px);transform:translateY(8px);">👩‍🎓</span></div>
+            <div style="margin-top:6px;color:var(--ok);font-weight:700;font-size:12px;" id="f2n">Priya Singh</div>
+            <div style="color:var(--ok);font-size:11px;font-family:var(--mono);" id="f2c">96.7%</div>
+          </div>
+          <div class="hide-mob" style="text-align:center;">
+            <div style="width:100px;height:130px;background:linear-gradient(180deg,#1a2a3a,#0d1421);border-radius:10px;border:1px solid var(--border);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;">
+              <span style="font-size:50px;transform:translateY(8px);">👤</span></div>
+            <div style="margin-top:6px;color:var(--tm);font-size:12px;">Unknown —</div>
+          </div>
+        </div>
+        <div class="cam-ov">
+          <div class="live-b"><div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div>LIVE</div>
+          <div style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.6);" id="camTmr">00:00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><div style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Subject</div><div style="font-size:14px;font-weight:700;" id="siSub">—</div></div>
+      <div><div style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Batch</div><div style="font-size:14px;font-weight:700;" id="siBat">—</div></div>
+      <div><div style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Total</div><div style="font-size:14px;font-weight:700;">60</div></div>
+      <div><div style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Recognised</div><div style="font-size:14px;font-weight:700;color:var(--ok);" id="siCnt">0</div></div>
+    </div>
+    <div class="sp-list" style="max-height:260px;overflow-y:auto;">
+      <div class="rh">👥 Recognised Today <span id="rCnt" style="color:var(--tm);font-weight:400;">0</span></div>
+      <div id="rList"><div style="padding:20px;text-align:center;color:var(--tm);font-size:12px;">No students recognised yet</div></div>
+      <div style="padding:10px 14px;font-size:12px;color:var(--tm);display:flex;justify-content:space-between;border-top:1px solid var(--border);">
+        <span>✅ Marked: <b id="mNum">0</b> / 60</span>
+      </div>
+    </div>
+    <button class="btn bd" id="stopBtn" onclick="stopSession()" style="display:none;width:100%;justify-content:center;">⏹ STOP &amp; SAVE SESSION</button>
+  </div>
+</div>`;}
+
+function startSession(){
+  SESSION=true;
+  const sub=document.getElementById('ssSub').value;
+  const bat=document.getElementById('ssBat').value;
+  document.getElementById('ssInfo').textContent=`${sub} — ${bat} | Live`;
+  document.getElementById('siSub').textContent=sub;
+  document.getElementById('siBat').textContent=bat;
+  document.getElementById('camPH').style.display='none';
+  document.getElementById('camAC').style.display='block';
+  document.getElementById('camF').classList.add('live');
+  document.getElementById('startBtn').style.display='none';
+  document.getElementById('stopBtn').style.display='flex';
+  SESS_SEC=0;
+  SESS_TMR=setInterval(()=>{
+    SESS_SEC++;
+    const mm=String(Math.floor(SESS_SEC/60)).padStart(2,'0');
+    const ss=String(SESS_SEC%60).padStart(2,'0');
+    const te=document.getElementById('camTmr');if(te)te.textContent=`${mm}:${ss}`;
+    if(SESS_SEC%5===0&&RECOG.length<POOL.length){
+      RECOG.push(POOL[RECOG.length]);
+      updateRecog();
+    }
+  },1000);
+}
+function updateRecog(){
+  const c=document.getElementById('rCnt'),s=document.getElementById('siCnt'),m=document.getElementById('mNum');
+  if(c)c.textContent=RECOG.length;if(s)s.textContent=RECOG.length;if(m)m.textContent=RECOG.length;
+  if(RECOG.length>0){const n=document.getElementById('f1n'),cf=document.getElementById('f1c');if(n)n.textContent=RECOG[RECOG.length-1];if(cf)cf.textContent=CONF[RECOG.length-1]||'91%';}
+  if(RECOG.length>1){const n=document.getElementById('f2n'),cf=document.getElementById('f2c');if(n)n.textContent=RECOG[RECOG.length-2];if(cf)cf.textContent=CONF[RECOG.length-2]||'90%';}
+  const rl=document.getElementById('rList');
+  if(rl)rl.innerHTML=[...RECOG].reverse().map((nm,i)=>`<div class="ri" style="animation:fi .3s ease-out;"><div class="ri-av">${nm[0]}</div><div><div class="ri-nm">${nm}</div><div class="ri-id">21CS00${RECOG.length-i}</div></div><div style="margin-left:auto;color:var(--ok);">✅</div></div>`).join('');
+}
+function stopSession(){
+  SESSION=false;clearInterval(SESS_TMR);
+  const b=document.getElementById('stopBtn');if(b){b.textContent='✅ Session Saved!';b.disabled=true;}
+  setTimeout(()=>go('attendance'),1400);
+}
+
+function attTbl(){return`<div class="ph"><div><div class="pt">Attendance Records</div></div><div class="ha"><select class="fi" style="width:auto;padding:8px 10px;font-size:12px;"><option>Data Structures</option><option>DBMS</option></select><button class="btn bg">📄 CSV</button><button class="btn bp">📑 PDF</button></div></div>`+attTblInner();}
+function attTblInner(){return`
+<div class="panel"><div class="phead"><div class="ptitle">📊 Attendance — Data Structures | Batch 3A CSE</div></div>
+<div class="scroll-x">
+<table class="tbl"><thead><tr><th>Roll No</th><th>Name</th><th>Present</th><th>Absent</th><th>Total</th><th>Att.%</th><th>Status</th></tr></thead><tbody>
+  ${STUDENTS.map(s=>{const bc=s.st==='safe'?'bk':s.st==='warn'?'bw':'br';const ac=s.st==='safe'?'ok':s.st==='warn'?'wa':'ng';const lb=s.st==='safe'?'Safe':s.st==='warn'?'Warning':'Detained';
+  return`<tr><td style="font-family:var(--mono);font-size:11px;color:var(--tm);">${s.id}</td><td><b>${s.name}</b></td><td style="color:var(--ok);">${s.p}</td><td style="color:var(--ac);">${s.ab}</td><td>${s.tot}</td><td><span class="apc ${ac}" style="font-size:13px;">${s.att}%</span></td><td><span class="bdg ${bc}"><span class="bdot"></span>${lb}</span></td></tr>`;}).join('')}
+</tbody></table></div></div>`;}
+
+function studTbl(){return`
+<div class="ph"><div class="pt">Students</div><input class="fi" placeholder="🔍 Search..." style="max-width:220px;padding:9px 12px;font-size:13px;"/></div>
+<div class="panel"><div class="scroll-x">
+<table class="tbl"><thead><tr><th>Roll No</th><th>Name</th><th>Att.%</th><th>Status</th><th></th></tr></thead><tbody>
+  ${STUDENTS.map(s=>{const bc=s.st==='safe'?'bk':s.st==='warn'?'bw':'br';const ac=s.st==='safe'?'ok':s.st==='warn'?'wa':'ng';
+  return`<tr><td style="font-family:var(--mono);font-size:11px;color:var(--tm);">${s.id}</td><td><b>${s.name}</b></td>
+  <td><div style="display:flex;align-items:center;gap:8px;"><div class="ab" style="width:60px;"><div class="af ${ac}" style="width:${s.att}%"></div></div><span style="font-size:12px;font-weight:700;">${s.att}%</span></div></td>
+  <td><span class="bdg ${bc}"><span class="bdot"></span>${s.st==='safe'?'Safe':s.st==='warn'?'Warn':'Detained'}</span></td>
+  <td><button class="btn bg" style="padding:5px 10px;font-size:11px;">View</button></td></tr>`;}).join('')}
+</tbody></table></div></div>`;}
+
+/* ═══════════════════════════════════════════════════════════
+   ADMIN VIEWS
+═══════════════════════════════════════════════════════════ */
+function renderAdmin(v,m){
+  if(v==='dashboard')m.innerHTML=aDash();
+  else if(v==='students')m.innerHTML=studTbl();
+  else if(v==='faculty')m.innerHTML=facTbl();
+  else if(v==='attendance')m.innerHTML=attTbl();
+  else if(v==='reports')m.innerHTML=`<div class="ph"><div class="pt">Reports</div><div class="ha"><button class="btn bg">📄 CSV</button><button class="btn bp">📑 PDF</button></div></div>`+attTblInner();
+  else if(v==='session'){m.innerHTML=sessView();RECOG=[];}
+  else if(v==='notifications')m.innerHTML=notifView([
+    {ic:'⚠️',c:'wad',msg:'94 students across all departments below 75%.',t:'2 hours ago'},
+    {ic:'✅',c:'okd',msg:'Weekly attendance sync completed.',t:'6 hours ago'},
+    {ic:'📊',c:'pd',msg:'April 2026 report generated.',t:'1 day ago'},
+  ]);
+}
+function aDash(){return`
+<div class="ph"><div><div class="pt">Admin Dashboard</div><div class="psb">Institution-wide overview</div></div><div class="ha"><button class="btn bp">📑 Full Report</button></div></div>
+<div class="stats-g">
+  <div class="sc"><div class="si b">👥</div><div><div class="sv">1,240</div><div class="sl">Students</div></div></div>
+  <div class="sc"><div class="si g">🎓</div><div><div class="sv">68</div><div class="sl">Faculty</div></div></div>
+  <div class="sc"><div class="si y">📅</div><div><div class="sv">3,820</div><div class="sl">Sessions</div></div></div>
+  <div class="sc"><div class="si r">⚠️</div><div><div class="sv" style="color:var(--wa);">94</div><div class="sl">Low Att.</div></div></div>
+</div>
+<div class="two-col">
+  <div class="panel"><div class="phead"><div class="ptitle">📈 Dept. Avg. Attendance</div></div><div class="pbody">
+    ${[['Computer Science','84.2','ok'],['Electronics','78.6','wa'],['Mechanical','81.1','ok'],['Civil','71.3','ng']].map(([d,p,c])=>`<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:13px;font-weight:600;">${d}</span><span class="apc ${c}" style="font-size:13px;">${p}%</span></div>
+      <div class="ab"><div class="af ${c}" style="width:${p}%"></div></div>
+    </div>`).join('')}
+  </div></div>
+  <div class="panel"><div class="phead"><div class="ptitle">🔔 Recent Alerts</div></div>
+    ${[{ic:'⚠️',c:'wad',msg:'12 students below 75% in ECE.',t:'1 hour ago'},{ic:'✅',c:'okd',msg:'Data Structures — 42/60 present.',t:'3 hours ago'},{ic:'❌',c:'acd',msg:'Rohit Verma critically low (58.3%).',t:'Yesterday'}]
+    .map(n=>`<div class="ni-item"><div class="ni-ic" style="background:var(--${n.c});">${n.ic}</div><div><div style="font-size:12px;">${n.msg}</div><div class="ni-t">${n.t}</div></div></div>`).join('')}
+  </div>
+</div>`;}
+
+function facTbl(){
+  const f=[{id:'FAC001',nm:'Dr. S. Mishra',d:'Computer Science',sub:3,ses:48,st:180},{id:'FAC002',nm:'Prof. A. Sharma',d:'Electronics',sub:2,ses:36,st:120},{id:'FAC003',nm:'Dr. R. Nair',d:'Mechanical',sub:4,ses:60,st:240}];
+  return`<div class="ph"><div class="pt">Faculty Management</div><button class="btn bp">+ Add Faculty</button></div>
+  <div class="panel"><div class="scroll-x">
+  <table class="tbl"><thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Subjects</th><th>Sessions</th><th>Actions</th></tr></thead><tbody>
+    ${f.map(r=>`<tr><td style="font-family:var(--mono);font-size:11px;color:var(--tm);">${r.id}</td><td><b>${r.nm}</b></td><td>${r.d}</td><td style="text-align:center;">${r.sub}</td><td style="text-align:center;">${r.ses}</td>
+    <td><div style="display:flex;gap:6px;"><button class="btn bg" style="padding:4px 9px;font-size:11px;">Edit</button><button class="btn bd" style="padding:4px 9px;font-size:11px;">Remove</button></div></td></tr>`).join('')}
+  </tbody></table></div></div>`;}
+
+/* SHARED */
+function notifView(items){return`
+<div class="ph"><div class="pt">Notifications</div><button class="btn bg" style="font-size:12px;padding:7px 12px;">Mark all read</button></div>
+<div class="panel">${items.map(n=>`<div class="ni-item"><div class="ni-ic" style="background:var(--${n.c});">${n.ic}</div><div><div style="font-size:13px;">${n.msg}</div><div class="ni-t">🕐 ${n.t}</div></div></div>`).join('')}</div>`;}
+
+function bars(){
+  setTimeout(()=>{document.querySelectorAll('.af').forEach(el=>{const w=el.style.width;el.style.width='0';setTimeout(()=>{el.style.width=w;},60);});},120);
+}
+
+/* keyboard */
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('loginPage').classList.contains('active'))doLogin();});
+</script>
+</body>
+</html>
